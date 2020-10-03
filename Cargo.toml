@@ -1,5 +1,5 @@
 [package]
-name = "web"
+name = "registry-rs"
 version = "0.1.0"
 authors = ["Caleb Boylan <calebboylan@gmail.com>"]
 edition = "2018"
@@ -9,9 +9,11 @@ edition = "2018"
 [dependencies]
 actix-web = "2.0"
 actix-rt = "1"
+async-trait = "0.1.41"
 dotenv = "0.15"
 http = "0.2"
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
 tokio = { version = "0.2", features = ["sync"] }
+uuid = { version = "0.8", features = ["v4"] }
