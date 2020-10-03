@@ -1197,6 +1197,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26412eb97c6b088a6997e05f69403a802a92d520de2f8e63c2b65f9e0f47c4e8"
 
 [[package]]
+name = "registry-rs"
+version = "0.1.0"
+dependencies = [
+ "actix-rt",
+ "actix-web",
+ "async-trait",
+ "dotenv",
+ "http",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "resolv-conf"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1534,22 +1550,6 @@ name = "wasi"
 version = "0.10.0+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
-
-[[package]]
-name = "web"
-version = "0.1.0"
-dependencies = [
- "actix-rt",
- "actix-web",
- "async-trait",
- "dotenv",
- "http",
- "serde",
- "serde_derive",
- "serde_json",
- "tokio",
- "uuid",
-]
 
 [[package]]
 name = "widestring"

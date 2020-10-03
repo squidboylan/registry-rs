@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 use actix_web::HttpResponse;
 
@@ -7,15 +8,15 @@ use uuid::Uuid;
 
 /// MemoryBackend provides an all in memory storage backend for the registry, this is useful only
 /// for testing and should never be used in practice.
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct MemoryBackend {
-    repos: HashMap<String, Repository>,
+    repos: RwLock<HashMap<String, Repository>>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 struct Repository {
-    uploads: HashMap<String, Upload>,
-    layers: HashMap<String, Layer>,
+    uploads: RwLock<HashMap<String, Upload>>,
+    layers: RwLock<HashMap<String, Layer>>,
 }
 
 #[derive(Default, Clone)]
@@ -26,14 +27,16 @@ struct Layer(Vec<u8>);
 
 #[async_trait]
 impl Backend for MemoryBackend {
-    async fn start_upload(&mut self, repository: String) -> HttpResponse {
-        let repo = self
-            .repos
+    async fn start_upload(&self, repository: String) -> HttpResponse {
+        let mut repos_lock = self.repos.write().unwrap();
+        let repo = repos_lock
             .entry(repository.clone())
             .or_insert(Repository::default());
 
         let id = Uuid::new_v4();
         repo.uploads
+            .write()
+            .unwrap()
             .insert(id.to_string(), Upload(Vec::with_capacity(0)));
         HttpResponse::Accepted()
             .header(

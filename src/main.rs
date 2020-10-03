@@ -4,14 +4,16 @@ extern crate async_trait;
 use actix_web::{web, App, HttpServer};
 
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 mod endpoints;
 mod storage;
 
+use storage::Backend;
+
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
-    let backend = Arc::new(RwLock::new(storage::memory::MemoryBackend::default()));
+    let backend: Arc<dyn Backend + Send + Sync> =
+        Arc::new(storage::memory::MemoryBackend::default());
     HttpServer::new(move || {
         App::new()
             .data(backend.clone())
