@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct Digest {
-    digest: String,
+    digest: Option<String>,
 }
 
 pub async fn v2() -> impl Responder {
@@ -15,9 +15,11 @@ pub async fn v2() -> impl Responder {
 }
 
 pub async fn start_upload(
+    req: HttpRequest,
     storage: web::Data<Arc<dyn Backend + Send + Sync>>,
     path: web::Path<(String, String)>,
 ) -> impl Responder {
+    println!("{:?}", req);
     let unwrapped_path = path.into_inner();
     let mut repo_name = unwrapped_path.0;
     repo_name.push('/');
@@ -27,9 +29,11 @@ pub async fn start_upload(
 }
 
 pub async fn get_upload(
+    req: HttpRequest,
     storage: web::Data<Arc<dyn Backend + Send + Sync>>,
     path: web::Path<(String, String, String)>,
 ) -> impl Responder {
+    println!("{:?}", req);
     let unwrapped_path = path.into_inner();
     let mut repo_name = unwrapped_path.0;
     repo_name.push('/');
@@ -46,6 +50,7 @@ pub async fn complete_upload(
     data: Bytes,
     digest: Query<Digest>,
 ) -> impl Responder {
+    println!("{:?}", req);
     let unwrapped_path = path.into_inner();
     let mut repo_name = unwrapped_path.0;
     repo_name.push('/');
@@ -64,36 +69,12 @@ pub async fn complete_upload(
         .await
 }
 
-pub async fn chunk_upload(
+pub async fn delete_upload(
     req: HttpRequest,
     storage: web::Data<Arc<dyn Backend + Send + Sync>>,
     path: web::Path<(String, String, String)>,
-    data: Bytes,
 ) -> impl Responder {
-    let unwrapped_path = path.into_inner();
-    let mut repo_name = unwrapped_path.0;
-    repo_name.push('/');
-    repo_name.push_str(&unwrapped_path.1);
-    let id = unwrapped_path.2;
-
-    let range = req
-        .headers()
-        .get("Content-Range")
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_owned();
-
-    storage
-        .into_inner()
-        .chunk_upload(repo_name, id, &data, range)
-        .await
-}
-
-pub async fn delete_upload(
-    storage: web::Data<Arc<dyn Backend + Send + Sync>>,
-    path: web::Path<(String, String, String)>,
-) -> impl Responder {
+    println!("{:?}", req);
     let unwrapped_path = path.into_inner();
     let mut repo_name = unwrapped_path.0;
     repo_name.push('/');
@@ -104,9 +85,11 @@ pub async fn delete_upload(
 }
 
 pub async fn head_layer(
+    req: HttpRequest,
     storage: web::Data<Arc<dyn Backend + Send + Sync>>,
     path: web::Path<(String, String, String)>,
 ) -> impl Responder {
+    println!("{:?}", req);
     let unwrapped_path = path.into_inner();
     let mut repo_name = unwrapped_path.0;
     repo_name.push('/');
@@ -117,7 +100,7 @@ pub async fn head_layer(
 }
 
 pub async fn default_endpoint(req: HttpRequest) -> impl Responder {
-    println!("{:?}", req.path());
+    println!("{:?}", req);
 
     HttpResponse::NotFound()
 }

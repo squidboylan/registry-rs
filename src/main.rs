@@ -19,8 +19,10 @@ async fn main() -> std::io::Result<()> {
         Arc::new(storage::memory::MemoryBackend::default());
     HttpServer::new(move || {
         App::new()
+            .app_data(web::PayloadConfig::new(1000000 * 250))
             .data(backend.clone())
             .route("/v2", web::get().to(endpoints::v2))
+            .route("/v2/", web::get().to(endpoints::v2))
             .route(
                 "/v2/{namespace}/{name}/blobs/uploads/",
                 web::post().to(endpoints::start_upload),
@@ -35,7 +37,7 @@ async fn main() -> std::io::Result<()> {
             )
             .route(
                 "/v2/{namespace}/{name}/blobs/uploads/{id}",
-                web::patch().to(endpoints::chunk_upload),
+                web::patch().to(endpoints::complete_upload),
             )
             .route(
                 "/v2/{namespace}/{name}/blobs/uploads/{id}",

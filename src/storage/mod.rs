@@ -12,15 +12,8 @@ pub trait Backend {
         repository: String,
         id: String,
         data: &Bytes,
-        digest: String,
+        digest: Option<String>,
         range: Option<String>,
-    ) -> HttpResponse;
-    async fn chunk_upload(
-        &self,
-        repository: String,
-        id: String,
-        data: &Bytes,
-        range: String,
     ) -> HttpResponse;
     async fn delete_upload(&self, repository: String, id: String) -> HttpResponse;
     async fn head_layer(&self, repository: String, digest: String) -> HttpResponse;

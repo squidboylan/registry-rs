@@ -75,7 +75,7 @@ impl Backend for MemoryBackend {
         repository: String,
         id: String,
         data: &Bytes,
-        digest: String,
+        digest: Option<String>,
         range: Option<String>,
     ) -> HttpResponse {
         let repos_lock = self.repos.read().unwrap();
@@ -85,15 +85,15 @@ impl Backend for MemoryBackend {
         }
         let repo = repo.unwrap();
 
-        let mut range_vec: Option<Vec<usize>> = None;
-        let upload = {
-            let mut uploads_lock = repo.uploads.write().unwrap();
+        let mut uploads_lock = repo.uploads.write().unwrap();
+        let mut len = None;
+        {
+            let upload = uploads_lock.get_mut(&id);
+            if upload.is_none() {
+                return HttpResponse::NotFound().finish();
+            }
+            let mut upload = upload.unwrap();
             if range.is_some() {
-                let upload = uploads_lock.get(&id);
-                if upload.is_none() {
-                    return HttpResponse::NotFound().finish();
-                }
-                let upload = upload.unwrap();
                 let tmp: Vec<usize> = range
                     .unwrap()
                     .split("-")
@@ -110,87 +110,44 @@ impl Backend for MemoryBackend {
                         .header("Docker-Upload-UUID", id)
                         .finish();
                 }
-                range_vec = Some(tmp);
             }
-            uploads_lock.remove(&id)
-        };
-
-        if upload.is_none() {
-            return HttpResponse::NotFound().finish();
+            upload.0.extend_from_slice(data);
+            len = Some(upload.0.len());
         }
-        let mut upload_vec = upload.unwrap().0;
-        upload_vec.extend_from_slice(data);
-        let len = upload_vec.len();
-        {
+
+        if digest.is_some() {
+            let digest = digest.unwrap();
+            let upload_vec = uploads_lock.remove(&id).unwrap().0;
             repo.layers
                 .write()
                 .unwrap()
                 .insert(digest.clone(), Layer(upload_vec));
-        }
 
-        if range_vec.is_some() {
-            return HttpResponse::Created()
-                .header("Location", format!("/v2/{}/blobs/{}", repository, digest))
-                .header("Content-Length", "0")
-                .header("Docker-Content-Digest", digest)
-                .header("Range", format!("0-{}", len))
-                .finish();
+            if len.is_some() {
+                return HttpResponse::Created()
+                    .header("Location", format!("/v2/{}/blobs/{}", repository, &digest))
+                    .header("Content-Length", "0")
+                    .header("Docker-Content-Digest", digest)
+                    .header("Range", format!("0-{}", len.unwrap()))
+                    .finish();
+            } else {
+                return HttpResponse::Created()
+                    .header("Location", format!("/v2/{}/blobs/{}", repository, &digest))
+                    .header("Content-Length", "0")
+                    .header("Docker-Content-Digest", digest)
+                    .finish();
+            }
         } else {
             return HttpResponse::Created()
-                .header("Location", format!("/v2/{}/blobs/{}", repository, digest))
-                .header("Content-Length", "0")
-                .header("Docker-Content-Digest", digest)
-                .finish();
-        }
-    }
-
-    async fn chunk_upload(
-        &self,
-        repository: String,
-        id: String,
-        data: &Bytes,
-        range: String,
-    ) -> HttpResponse {
-        let range_vec: Vec<usize> = range
-            .split("-")
-            .map(|x| x.parse::<usize>().unwrap())
-            .collect();
-        let repos_lock = self.repos.read().unwrap();
-        let repo = repos_lock.get(&repository);
-        if repo.is_none() {
-            return HttpResponse::NotFound().finish();
-        }
-        let repo = repo.unwrap();
-
-        let mut uploads_lock = repo.uploads.write().unwrap();
-        let upload = uploads_lock.remove(&id);
-
-        if upload.is_none() {
-            return HttpResponse::NotFound().finish();
-        }
-        let mut upload_vec = upload.unwrap().0;
-        if upload_vec.len() != range_vec[0] {
-            return HttpResponse::RangeNotSatisfiable()
                 .header(
                     "Location",
                     format!("/v2/{}/blobs/uploads/{}", repository, id),
                 )
-                .header("Range", format!("0-{}", upload_vec.len() - 1))
+                .header("Range", format!("0-{}", len.unwrap()))
                 .header("Content-Length", "0")
                 .header("Docker-Upload-UUID", id)
                 .finish();
         }
-        upload_vec.extend_from_slice(data);
-
-        HttpResponse::Created()
-            .header(
-                "Location",
-                format!("/v2/{}/blobs/uploads/{}", repository, id),
-            )
-            .header("Range", format!("0-{}", upload_vec.len()))
-            .header("Content-Length", "0")
-            .header("Docker-Upload-UUID", id)
-            .finish()
     }
 
     async fn delete_upload(&self, repository: String, id: String) -> HttpResponse {
@@ -215,7 +172,11 @@ impl Backend for MemoryBackend {
 
     async fn head_layer(&self, repository: String, digest: String) -> HttpResponse {
         let repos_lock = self.repos.read().unwrap();
-        let repo = repos_lock.get(&repository).unwrap();
+        let repo = repos_lock.get(&repository);
+        if repo.is_none() {
+            return HttpResponse::NotFound().finish();
+        }
+        let repo = repo.unwrap();
 
         let layers_lock = repo.layers.read().unwrap();
         let layer = layers_lock.get(&digest);
