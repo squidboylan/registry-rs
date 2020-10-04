@@ -35,7 +35,15 @@ async fn main() -> std::io::Result<()> {
             )
             .route(
                 "/v2/{namespace}/{name}/blobs/uploads/{id}",
+                web::patch().to(endpoints::chunk_upload),
+            )
+            .route(
+                "/v2/{namespace}/{name}/blobs/uploads/{id}",
                 web::delete().to(endpoints::delete_upload),
+            )
+            .route(
+                "/v2/{namespace}/{name}/blobs/{digest}",
+                web::head().to(endpoints::head_layer),
             )
             .default_service(web::to(endpoints::default_endpoint))
     })
