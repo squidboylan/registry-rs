@@ -1203,6 +1203,7 @@ dependencies = [
  "actix-rt",
  "actix-web",
  "async-trait",
+ "bytes",
  "dotenv",
  "http",
  "serde",

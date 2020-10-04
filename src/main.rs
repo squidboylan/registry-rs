@@ -1,4 +1,7 @@
 #[macro_use]
+extern crate serde;
+
+#[macro_use]
 extern crate async_trait;
 
 use actix_web::{web, App, HttpServer};
@@ -20,7 +23,19 @@ async fn main() -> std::io::Result<()> {
             .route("/v2", web::get().to(endpoints::v2))
             .route(
                 "/v2/{namespace}/{name}/blobs/uploads/",
-                web::post().to(endpoints::upload),
+                web::post().to(endpoints::start_upload),
+            )
+            .route(
+                "/v2/{namespace}/{name}/blobs/uploads/{id}",
+                web::get().to(endpoints::get_upload),
+            )
+            .route(
+                "/v2/{namespace}/{name}/blobs/uploads/{id}",
+                web::put().to(endpoints::complete_upload),
+            )
+            .route(
+                "/v2/{namespace}/{name}/blobs/uploads/{id}",
+                web::delete().to(endpoints::delete_upload),
             )
             .default_service(web::to(endpoints::default_endpoint))
     })
